@@ -1,0 +1,34 @@
+name: Generate
+
+on:
+  push:
+    branches:
+      - test/BackwardsCompatibility
+  pull_request:
+
+env:
+  BUF_VERSION: 1.34.0
+  breaking:
+    name: Breaking Change Prevention
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          version: ${{ env.BUF_VERSION }}
+          github_token: ${{ github.token }}
+
+      - name: Determine Base Branch
+        id: vars
+        run: |
+          if [[ "${{ github.base_ref }}" == "" ]]; then
+            echo BASE_BRANCH="main" >> $GITHUB_ENV
+
+          else
+            echo BASE_BRANCH="${{ github.base_ref }}" >> $GITHUB_ENV
+          fi
+
+      - uses: bufbuild/buf-breaking-action@v1
+        with:
+          against: "https://x-oauth-basic:${{ github.token }}@github.com/nicksnyder/testbuf.git#branch=${{ env.BASE_BRANCH }},ref=HEAD,subdir=."
